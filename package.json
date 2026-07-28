@@ -1,0 +1,13 @@
+{
+  "name": "email-classifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Polls a shared M365 mailbox via Microsoft Graph, scores inbound emails as ticket/ignore/review, applies Outlook categories, and outputs an HTML report. No Accelo API calls in this stage.",
+  "type": "commonjs",
+  "scripts": {
+    "classify": "node scripts/classify-emails.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.7"
+  }
+}

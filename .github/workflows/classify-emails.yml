@@ -1,0 +1,62 @@
+name: Classify Inbox Emails
+
+# Polling model, not webhooks: no public endpoint to host, no Graph
+# subscription to renew every ~3 days. Trades a few minutes of latency
+# for zero infrastructure beyond GitHub Actions itself.
+on:
+  schedule:
+    # Every 15 minutes. Note: GitHub's scheduler is best-effort and can lag
+    # by several minutes under platform load — don't rely on this for
+    # anything requiring precise timing.
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {} # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write # needed to commit updated state/report files back to the repo
+
+concurrency:
+  group: email-classifier
+  cancel-in-progress: false # let a running classification finish before the next starts
+
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run classifier
+        env:
+          GRAPH_TENANT_ID: ${{ secrets.GRAPH_TENANT_ID }}
+          GRAPH_CLIENT_ID: ${{ secrets.GRAPH_CLIENT_ID }}
+          GRAPH_CLIENT_SECRET: ${{ secrets.GRAPH_CLIENT_SECRET }}
+          MAILBOX_USER_ID: ${{ secrets.MAILBOX_USER_ID }}
+          INTERNAL_DOMAIN: ${{ vars.INTERNAL_DOMAIN }}
+          KNOWN_CLIENT_DOMAINS: ${{ vars.KNOWN_CLIENT_DOMAINS }}
+          HIGH_CONFIDENCE_THRESHOLD: ${{ vars.HIGH_CONFIDENCE_THRESHOLD }}
+          LOW_CONFIDENCE_THRESHOLD: ${{ vars.LOW_CONFIDENCE_THRESHOLD }}
+        run: npm run classify
+
+      - name: Commit updated state and report
+        run: |
+          git config user.name "email-classifier-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/ report/
+          git diff --staged --quiet || git commit -m "Classification run $(date -u +%Y-%m-%dT%H:%M:%SZ) [skip ci]"
+          git push
+
+      - name: Upload report as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: classification-report
+          path: report/latest.html
+          retention-days: 14
