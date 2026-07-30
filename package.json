@@ -2,12 +2,25 @@
   "name": "email-classifier",
   "version": "1.0.0",
   "private": true,
-  "description": "Polls a shared M365 mailbox via Microsoft Graph, scores inbound emails as ticket/ignore/review, applies Outlook categories, and outputs an HTML report. No Accelo API calls in this stage.",
+  "description": "Locally-run classifier: polls a shared M365 mailbox via Microsoft Graph, scores inbound emails as ticket/ignore/review, applies Outlook categories, and outputs an HTML report. No Accelo API calls in this stage.",
   "type": "commonjs",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
-    "classify": "node scripts/classify-emails.js"
+    "classify": "node scripts/classify-emails.js",
+    "test-run": "cross-env TEST_MODE=true node scripts/classify-emails.js",
+    "test-pst": "node scripts/import-pst.js",
+    "watch": "node scripts/watch.js"
   },
   "dependencies": {
-    "axios": "^1.7.7"
+    "axios": "^1.7.7",
+    "dotenv": "^16.4.5",
+    "node-cron": "^3.0.3",
+    "open": "^10.1.0",
+    "pst-extractor": "^1.12.0"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }
